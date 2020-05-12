@@ -1,7 +1,8 @@
 import pandas as pd
 
 requirements_stop_words = ['условия', 'преимущества работы', 'у нас есть', 'предлагаем', 'гарантируем', 'нужно будет']
-requirements_start_words = ['Требования', 'Твой функционал']
+requirements_start_words = ['Требования', 'Твой функционал', 'мы ожидаем', 'хотим от', 'вас', 'тебя', 'нужно знать',
+                            'нужно уметь', 'Ключевые умения', 'ожидания']
 from normalizer import DocumentsPreprocessing
 import matrix
 
@@ -37,10 +38,10 @@ def hh_vacancy_requirements_extractor(row):
     return ''
 
 
-data_set = pd.read_csv('./merged.csv').head(10000)
+data_set = pd.read_csv('./merged.csv')
 documents = data_set['description']
 
-term, documents_matrix = matrix.DocumentMatrixBuilder(min_df=0.005, max_df=0.98,
+term, documents_matrix = matrix.DocumentMatrixBuilder(min_df=0.001, max_df=0.999,
                                                       sub_text_extractor=hh_vacancy_requirements_extractor).build_matrix(
     documents)
 matrix.save_matrix_and_terms(term, documents_matrix)

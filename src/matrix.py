@@ -5,12 +5,14 @@ from normalizer import DocumentsPreprocessing
 
 
 class DocumentMatrixBuilder:
-
     def __init__(self, min_df=0.05, max_df=0.99, sub_text_extractor=None):
         self.prepocessor = DocumentsPreprocessing()
         self.min_df = min_df
         self.max_df = max_df
-        self.sub_text_extractor = sub_text_extractor
+        if sub_text_extractor is None:
+            self.sub_text_extractor = self.__stub
+        else:
+            self.sub_text_extractor = sub_text_extractor
 
     def build_matrix(self, documents):
         cleaned_documents = self.prepocessor.clean_docs(documents)
@@ -20,10 +22,13 @@ class DocumentMatrixBuilder:
         matrix = vectorizer.fit_transform(corpus)
         return vectorizer.get_feature_names(), matrix
 
+    def __stub(self, x):
+        return x
+
 
 def save_matrix_and_terms(terms, matrix, file_name='./matrix'):
     sparse.save_npz(file_name, matrix)
-    with open('./terms', 'w', encoding='utf-8') as f:
+    with open('{}_terms'.format(file_name), 'w', encoding='utf-8') as f:
         f.write('\n'.join(terms))
 
 
@@ -37,10 +42,10 @@ def print_topics(count_related_words, components, terms):
         print(topic)
 
 
-def read_matrix(file_name='./matrix.npz'):
-    frequency_table = sparse.load_npz(file_name)
+def read_matrix(file_name='./matrix'):
+    frequency_table = sparse.load_npz('{}.npz'.format(file_name))
     terms = []
-    with open('./terms', 'r', encoding='utf-8') as f:
+    with open('{}_terms'.format(file_name), 'r', encoding='utf-8') as f:
         data = f.readlines()
         for i in data:
             terms.append(i.strip())
