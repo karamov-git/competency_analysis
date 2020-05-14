@@ -1,29 +1,31 @@
-import urllib.request
 import pandas as pd
 from normalizer import DocumentsPreprocessing
 import matrix
+from documents_provider import EducationDocumentsProvider
 
-education_links = ['https://programs.edu.urfu.ru/ru/8516/', 'https://programs.edu.urfu.ru/ru/10216/',
-                   'https://programs.edu.urfu.ru/ru/8510/',
-                   'https://programs.edu.urfu.ru/ru/9813/', 'https://programs.edu.urfu.ru/ru/8512/',
-                   'https://programs.edu.urfu.ru/ru/9795/', 'https://programs.edu.urfu.ru/ru/8986/',
-                   'https://programs.edu.urfu.ru/ru/9021/', 'https://programs.edu.urfu.ru/ru/8522/',
-                   'https://programs.edu.urfu.ru/ru/8541/',
-                   'https://programs.edu.urfu.ru/ru/8562/', 'https://programs.edu.urfu.ru/ru/8655/',
-                   'https://programs.edu.urfu.ru/ru/9082/', 'https://programs.edu.urfu.ru/ru/9797/',
-                   'https://programs.edu.urfu.ru/ru/9812/', 'https://programs.edu.urfu.ru/ru/9936/',
-                   'https://programs.edu.urfu.ru/ru/9846/']
+skills_mark_words = [('планируемые результаты обучения по дисциплине', '1 4 объем дисциплины'),
+                     ('содержание дисциплины', '3 распределение учебного времени')]
 
 
-def extract_education(links):
-    educations = []
-    for link in links:
-        req = urllib.request.Request(link, method="GET")
-        educations.append(urllib.request.urlopen(req).read().decode())
-    return educations
+def extract(doc, mark_sent):
+    mark_start, mark_end = mark_sent
+    start_position = doc.find(mark_start)
+    end_position = doc.find(mark_end)
+    if start_position == -1 or end_position == -1 or start_position > end_position:
+        return ''
+    return doc[start_position + len(mark_start): end_position] + extract(doc[end_position + len(mark_end):], mark_sent)
 
 
-ed_descriptions = pd.read_csv('ed.csv')['ed_description']
-term, documents_matrix = matrix.DocumentMatrixBuilder(min_df=0.001, max_df=0.999).build_matrix(
-    ed_descriptions)
-matrix.save_matrix_and_terms(term, documents_matrix, file_name='./ed_matrix')
+def education_skills_extractor(document):
+    result = extract(document, skills_mark_words[0])
+    content = extract(document, skills_mark_words[1])
+    return ' '.join([result, content])
+
+
+data_set = pd.read_csv('./ed.csv')
+documents = data_set['documents']
+
+term, documents_matrix = matrix.DocumentMatrixBuilder(min_df=0.001, max_df=0.999,
+                                                      sub_text_extractor=education_skills_extractor).build_matrix(
+    documents)
+matrix.save_matrix_and_terms(term, documents_matrix, './ed_matrix')
