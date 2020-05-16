@@ -73,7 +73,7 @@ class EducationDocumentsProvider:
             self.__download_education_docs(pdf_name, self._education_program_urls[pdf_name])
         logger.log('end download')
         docs = self.__extract_educations(self._education_program_urls.keys())
-        return pd.DataFrame(docs, columns=['documents'])
+        return pd.DataFrame.from_records(docs, columns=['name', 'documents'])
 
     def __extract_educations(self, education_docs_name):
         docs = []
@@ -82,5 +82,27 @@ class EducationDocumentsProvider:
                 doc_as_page_string = slate.PDF(doc_stream)
                 logger.log('end extract {}'.format(doc))
             doc_as_string = ' '.join(doc_as_page_string)
-            docs.append(doc_as_string)
+            for discipline in self.__split_module_by_discipline(doc_as_string):
+                docs.append([discipline[0], discipline[1]])
         return docs
+
+    def __get_name(self, discipline):
+        end_words = ['1.1', 'рабочая', 'аннотация', '1.2', '1.3']
+        end_positions = [discipline.lower().find(end) for end in end_words]
+        min_end = len(discipline)
+        for pos in end_positions:
+            if pos < min_end and pos != -1:
+                min_end = pos
+        name = discipline[:min_end].strip().lower().replace('\n', '')
+        if name == '':
+            name = 'not contain name'
+        return name
+
+    def __split_module_by_discipline(self, module):
+        disciplines = module.split('ОБЩАЯ ХАРАКТЕРИСТИКА ДИСЦИПЛИНЫ')
+        result = []
+        for discipline in disciplines[1:]:
+            name = self.__get_name(discipline)
+            result.append([name, discipline])
+        return result
+
